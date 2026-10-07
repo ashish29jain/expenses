@@ -248,7 +248,7 @@
   $('dlg').addEventListener('click', e => { if (e.target === $('dlg')) closeDialog(); });
 
   // ---------------- add / edit form ----------------
-  let editing = null, formReady = false, optionsSig = '';
+  let editing = null, formReady = false, optionsSig = '', autoDate = ''; // autoDate: the date the app filled in itself
   function fillSelect(sel, values, placeholder) {
     const cur = sel.value;
     sel.innerHTML = '';
@@ -300,7 +300,7 @@
   function resetForm() {
     editing = null;
     form.reset();
-    form.date.value = today();
+    form.date.value = autoDate = today();
     if (cache.options) {
       setField('split', cache.options.defaultSplit);
       setField('spentBy', cache.options.defaultSpentBy);
@@ -360,7 +360,11 @@
     if (name === 'list') renderList();
     if (name === 'trends') renderTrends();
   }
-  document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => { setStatus(''); showTab(b.dataset.tab); }));
+  document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => {
+    setStatus('');
+    if (b.dataset.tab === 'add' && editing) resetForm(); // the Add tab always means a new expense
+    showTab(b.dataset.tab);
+  }));
 
   // ---------------- entries list ----------------
   let shown = PAGE;
@@ -589,7 +593,9 @@
   window.addEventListener('offline', () => { online = false; renderSync(); });
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState !== 'visible') return;
-    if (!editing && !form.amount.value) form.date.value = today(); // a new day since the app was last opened
+    // A new day since the app was last opened: move the date on, but only if it's still the one the
+    // app filled in. A date you picked yourself is never changed.
+    if (!editing && form.date.value === autoDate && autoDate !== today()) form.date.value = autoDate = today();
     sync();
   });
   setInterval(() => { if (!cache.options || lastError || queue.some(o => o.status === 'pending')) sync(); }, 30000);
