@@ -46,6 +46,7 @@
         <button type="button" id="delete" class="danger" hidden>Delete this expense</button>
       </form>
     </div>
+    <p class="ver" id="ver"></p>
   </section>
 
   <!-- ENTRIES -->
@@ -64,20 +65,20 @@
   <section id="view-trends" hidden>
     <div class="charts">
       <div class="card chart-card">
-        <div class="chart-head"><h2>Ashish · monthly spend</h2><span class="tot" id="tot-A"></span></div>
-        <div class="chart-sub">Last 8 months · stacked by category · by who paid</div>
+        <div class="chart-head"><h2>Ashish · monthly share</h2><span class="tot" id="tot-A"></span></div>
+        <div class="chart-sub">Last 8 months · stacked by category · Both = half each</div>
         <div class="chart-box"><canvas id="c-A"></canvas></div>
         <details><summary>Show as table</summary><div class="tbl" id="tbl-A"></div></details>
       </div>
       <div class="card chart-card">
-        <div class="chart-head"><h2>Shivani · monthly spend</h2><span class="tot" id="tot-B"></span></div>
+        <div class="chart-head"><h2>Shivani · monthly share</h2><span class="tot" id="tot-B"></span></div>
         <div class="chart-sub">Same scale as Ashish's chart</div>
         <div class="chart-box"><canvas id="c-B"></canvas></div>
         <details><summary>Show as table</summary><div class="tbl" id="tbl-B"></div></details>
       </div>
       <div class="card chart-card">
         <div class="chart-head"><h2>Ashish vs Shivani</h2><span class="tot" id="tot-C"></span></div>
-        <div class="chart-sub">Last 8 months · by who paid · tick one or more categories</div>
+        <div class="chart-sub">Last 8 months · each person's share · tick one or more categories</div>
         <div class="chips" id="c-cats"></div>
         <div class="chart-box"><canvas id="c-C"></canvas></div>
         <details><summary>Show as table</summary><div class="tbl" id="tbl-C"></div></details>

@@ -1,11 +1,14 @@
 // Keeps the app on the phone so it opens instantly and works offline.
-// Bump VERSION whenever you upload a new version of the app.
-const VERSION = 'expenses-v9';
+// Bump VERSION (and APP_VERSION in app.js) whenever you upload a new version of the app.
+const VERSION = 'expenses-v12';
 const CHART_JS = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js';
 const SHELL = ['./', 'index.html', 'style.css', 'app.js', 'config.js', 'manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png', CHART_JS];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  // cache: 'reload' = always download fresh files, never reuse the browser's (possibly old) copy.
+  e.waitUntil(caches.open(VERSION)
+    .then(c => c.addAll(SHELL.map(u => new Request(u, { cache: 'reload' }))))
+    .then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', e => {
@@ -26,7 +29,8 @@ self.addEventListener('fetch', e => {
   const key = req.mode === 'navigate' ? 'index.html' : req;
   e.respondWith(caches.open(VERSION).then(async cache => {
     const hit = await cache.match(key, { ignoreSearch: true });
-    const fresh = fetch(req).then(res => {
+    // Background refresh asks GitHub whether the file changed (no-cache), instead of reusing an old copy.
+    const fresh = fetch(req.url === CHART_JS ? req : new Request(req.mode === 'navigate' ? 'index.html' : req.url, { cache: 'no-cache' })).then(res => {
       if (res.ok) cache.put(key, res.clone());
       return res;
     }).catch(() => hit);

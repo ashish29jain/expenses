@@ -66,6 +66,7 @@ button:disabled { opacity:.6; }
 .entry .r.wait { color:var(--warn); }
 .entry .r.bad { color:var(--err); }
 .empty { text-align:center; color:var(--muted); padding:24px 0; }
+.ver { text-align:center; font-size:.75rem; color:var(--muted); margin:14px 0 0; }
 
 .charts { display:grid; gap:12px; }
 .chart-card { padding:14px 12px 10px; }

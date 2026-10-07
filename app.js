@@ -4,6 +4,7 @@
 (function () {
   'use strict';
 
+  const APP_VERSION = 'v12'; // keep in step with VERSION in sw.js
   const CFG = window.EXPENSES_CONFIG || {};
   const PEOPLE = ['Ashish', 'Shivani'];
   const FIELDS = ['date', 'subcategory', 'purpose', 'amount', 'spentBy', 'split', 'source'];
@@ -475,6 +476,7 @@
     return {
       responsive: true, maintainAspectRatio: false, animation: false,
       interaction: { mode: 'index', intersect: false },
+      onClick: toggleTooltip,
       scales: {
         x: { stacked, grid: { display: false }, border: { color: grid }, ticks: { color: muted, font: { size: 11 }, autoSkip: false, maxRotation: 50 } },
         y: { stacked, beginAtZero: true, suggestedMax: yMax || undefined, grid: { color: grid }, border: { display: false }, ticks: { color: muted, font: { size: 11 }, maxTicksLimit: 5, callback: compact } },
@@ -495,6 +497,25 @@
     return { backgroundColor: color, hoverBackgroundColor: color, borderColor: cssVar('--card'), borderSkipped: false, maxBarThickness: 36,
       borderWidth: stacked ? { top: 2, right: 0, bottom: 0, left: 0 } : { top: 0, right: 1, bottom: 0, left: 1 } };
   }
+  // On a phone a tapped bar's numbers would stay up forever (there's no "mouse leaves").
+  // Tapping the same bar again, or anywhere outside the chart, hides them.
+  function hideTooltip(chart) {
+    if (!chart.tooltip || !chart.tooltip.getActiveElements().length) return;
+    chart.setActiveElements([]);
+    chart.tooltip.setActiveElements([], { x: 0, y: 0 });
+    chart.update('none');
+    chart.$shown = null;
+  }
+  function toggleTooltip(evt, elements, chart) {
+    const idx = elements.length ? elements[0].index : null;
+    // The chart redraws its numbers right after this click handler, so hide them just after that.
+    if (idx !== null && idx === chart.$shown) setTimeout(() => hideTooltip(chart), 0);
+    else chart.$shown = idx;
+  }
+  document.addEventListener('pointerdown', e => {
+    Object.values(charts).forEach(c => { if (e.target !== c.canvas) hideTooltip(c); });
+  }, true);
+
   function drawChart(id, labels, datasets, options) {
     if (charts[id]) charts[id].destroy();
     charts[id] = new Chart($(id), { type: 'bar', data: { labels, datasets }, options });
@@ -537,13 +558,13 @@
     const series = categorySeries(entries);
     const order = [...new Map(Object.values(series).map(s => [s.name, s])).values()];
 
-    // A & B: monthly, stacked by category, by who paid. Shared y-axis.
+    // A & B: monthly share, stacked by category. Shared y-axis.
     const agg = { Ashish: {}, Shivani: {} };
     entries.forEach(e => {
       const i = idx[(e.date || '').slice(0, 7)];
       if (i == null) return;
       const s = series[catOf(e)];
-      PEOPLE.forEach(p => { const v = paidBy(e, p); if (v) (agg[p][s.name] = agg[p][s.name] || Array(8).fill(0))[i] += v; });
+      PEOPLE.forEach(p => { const v = shareOf(e, p); if (v) (agg[p][s.name] = agg[p][s.name] || Array(8).fill(0))[i] += v; });
     });
     const yMax = Math.max(0, ...PEOPLE.flatMap(p => months.map((_, i) => sum(Object.values(agg[p]).map(a => a[i])))));
     [['A', 'Ashish'], ['B', 'Shivani']].forEach(([k, p]) => {
@@ -553,7 +574,7 @@
       table($('tbl-' + k), 'Month', labels, ds.map(d => ({ name: d.label, data: d.data })));
     });
 
-    // C: Ashish vs Shivani for the chosen categories (none chosen = all), by who paid.
+    // C: Ashish's vs Shivani's share for the chosen categories (none chosen = all).
     const cats = [...new Set(entries.map(catOf))].sort();
     cSelected.forEach(c => { if (!cats.includes(c)) cSelected.delete(c); });
     buildCategoryChips(cats);
@@ -561,7 +582,7 @@
     entries.forEach(e => {
       const i = idx[(e.date || '').slice(0, 7)];
       if (i == null || (cSelected.size && !cSelected.has(catOf(e)))) return;
-      PEOPLE.forEach((p, k) => { cData[k][i] += paidBy(e, p); });
+      PEOPLE.forEach((p, k) => { cData[k][i] += shareOf(e, p); });
     });
     const cDs = PEOPLE.map((p, k) => Object.assign({ label: p, data: cData[k] }, barStyle(SERIES[mode()][k], false)));
     $('tot-C').textContent = PEOPLE.map((p, k) => p + ' ' + fmtMoney(sum(cData[k]))).join(' · ');
@@ -629,7 +650,24 @@
   });
   setInterval(() => { if (!cache.options || lastError || queue.some(o => o.status === 'pending')) sync(); }, 30000);
 
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+  if ('serviceWorker' in navigator) {
+    // When a new version has finished downloading, switch to it right away.
+    // (An unfinished entry is kept – see saveDraft – so nothing typed is lost.)
+    // (The very first install also "changes" the controller; that one needs no reload.)
+    let current = navigator.serviceWorker.controller, switching = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      const wasUpdate = !!current;
+      current = navigator.serviceWorker.controller;
+      if (!wasUpdate || switching) return;
+      switching = true;
+      saveDraft();
+      location.reload();
+    });
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(reg => {
+      document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') reg.update().catch(() => {}); });
+    }).catch(() => {});
+  }
+  $('ver').textContent = 'Expenses ' + APP_VERSION;
 
   renderAll();
   sync();
