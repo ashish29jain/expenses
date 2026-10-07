@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Expenses</title>
+  <meta name="description" content="Add and track expenses for Ashish and Shivani.">
+  <meta name="theme-color" content="#1a73e8">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="icon-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Expenses">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <header class="bar">
+    <nav class="tabs">
+      <button type="button" data-tab="add" class="active">Add</button>
+      <button type="button" data-tab="list">Entries</button>
+      <button type="button" data-tab="trends">Trends</button>
+    </nav>
+    <button type="button" id="sync" class="pill"></button>
+  </header>
+  <div id="status" role="status"></div>
+
+  <!-- ADD / EDIT -->
+  <section id="view-add">
+    <h1 id="form-title">Add expense</h1>
+    <div class="card">
+      <form id="f" autocomplete="off">
+        <label><span>Date <span class="req">*</span></span><input type="date" name="date" required></label>
+        <label><span>Subcategory <span class="req">*</span></span><select name="subcategory" required></select></label>
+        <label>Purpose<input type="text" name="purpose" placeholder="Dinner at XYZ"></label>
+        <label><span>Amount <span class="req">*</span></span><input type="number" name="amount" step="0.01" min="0.01" inputmode="decimal" required></label>
+        <div class="field">Spent by<div class="seg" id="seg-spentBy"></div></div>
+        <div class="field">Split between<div class="seg" id="seg-split"></div></div>
+        <label>Source<select name="source"></select></label>
+        <div class="actions" id="actions">
+          <button type="button" id="cancel" class="secondary" hidden>Cancel</button>
+          <button id="btn" type="submit">Add expense</button>
+        </div>
+        <button type="button" id="delete" class="danger" hidden>Delete this expense</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- ENTRIES -->
+  <section id="view-list" hidden>
+    <h1>All entries</h1>
+    <div class="row">
+      <input type="search" id="q" placeholder="Search">
+      <select id="cat"><option value="">All categories</option></select>
+    </div>
+    <div class="summary" id="summary"></div>
+    <div class="list" id="list"></div>
+    <button type="button" id="more" class="secondary wide" hidden>Show more</button>
+  </section>
+
+  <!-- TRENDS -->
+  <section id="view-trends" hidden>
+    <div class="charts">
+      <div class="card chart-card">
+        <div class="chart-head"><h2>Ashish · monthly spend</h2><span class="tot" id="tot-A"></span></div>
+        <div class="chart-sub">Last 8 months · stacked by category · by who paid</div>
+        <div class="chart-box"><canvas id="c-A"></canvas></div>
+        <details><summary>Show as table</summary><div class="tbl" id="tbl-A"></div></details>
+      </div>
+      <div class="card chart-card">
+        <div class="chart-head"><h2>Shivani · monthly spend</h2><span class="tot" id="tot-B"></span></div>
+        <div class="chart-sub">Same scale as Ashish's chart</div>
+        <div class="chart-box"><canvas id="c-B"></canvas></div>
+        <details><summary>Show as table</summary><div class="tbl" id="tbl-B"></div></details>
+      </div>
+      <div class="card chart-card">
+        <div class="chart-head"><h2>Ashish vs Shivani</h2><span class="tot" id="tot-C"></span></div>
+        <div class="chart-sub">Last 8 months · by who paid · tick one or more categories</div>
+        <div class="chips" id="c-cats"></div>
+        <div class="chart-box"><canvas id="c-C"></canvas></div>
+        <details><summary>Show as table</summary><div class="tbl" id="tbl-C"></div></details>
+      </div>
+      <div class="card chart-card">
+        <div class="chart-head"><h2>Shares by category</h2></div>
+        <div class="chart-sub">Split between decides the share · Both = half each</div>
+        <div class="chips" id="d-months"></div>
+        <div class="tot-line" id="tot-D"></div>
+        <div class="chart-box tall"><canvas id="c-D"></canvas></div>
+        <details><summary>Show as table</summary><div class="tbl" id="tbl-D"></div></details>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- Clash / problem dialog -->
+<div id="dlg" class="dlg" hidden>
+  <div class="dlg-card" role="dialog" aria-modal="true" aria-labelledby="dlg-title">
+    <h2 id="dlg-title"></h2>
+    <p id="dlg-text"></p>
+    <div class="tbl" id="dlg-table"></div>
+    <div class="dlg-actions" id="dlg-actions"></div>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
