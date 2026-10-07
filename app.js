@@ -110,7 +110,7 @@
   async function api(action, payload) {
     if (!CFG.API_URL || /PASTE/.test(CFG.API_URL)) throw new Error('setup');
     const ctl = new AbortController();
-    const t = setTimeout(() => ctl.abort(), 25000);
+    const t = setTimeout(() => ctl.abort(), 60000); // Apps Script can be slow to start
     try {
       const res = await fetch(CFG.API_URL, {
         method: 'POST', signal: ctl.signal, redirect: 'follow',
@@ -167,6 +167,7 @@
       if (err.message === 'setup') lastError = 'The app is not connected to the sheet yet (config.js).';
       else if (/Invalid key/.test(err.message)) lastError = 'The key in config.js does not match Code.gs.';
       else if (err.fromSheet) lastError = 'The sheet replied: ' + err.message;
+      else if (err.name === 'AbortError') { online = true; lastError = 'The sheet took more than a minute to answer. The app keeps trying.'; }
       else { online = false; lastError = ''; }
     } finally {
       syncing = false;
@@ -277,7 +278,10 @@
   function setupForm() {
     const o = cache.options;
     if (!o) {
-      setStatus('Connect to the internet once so the app can load your Subcategory and Source lists.', 'err');
+      setStatus(syncing ? 'Loading your Subcategory and Source lists from the sheet…'
+        : lastError ? lastError + ' (the lists will load once this is fixed)'
+        : !online ? 'No connection to the sheet yet. Your Subcategory and Source lists load the first time it connects.'
+        : 'Loading your lists…', !syncing && (lastError || !online) ? 'err' : '');
       $('btn').disabled = true;
       return;
     }
@@ -291,7 +295,7 @@
       resetForm();
     }
     $('btn').disabled = false;
-    if (/Connect to the internet once/.test($('status').textContent)) setStatus('');
+    if (/lists/.test($('status').textContent)) setStatus('');
   }
   function resetForm() {
     editing = null;
@@ -588,7 +592,7 @@
     if (!editing && !form.amount.value) form.date.value = today(); // a new day since the app was last opened
     sync();
   });
-  setInterval(() => { if (queue.some(o => o.status === 'pending')) sync(); }, 30000);
+  setInterval(() => { if (!cache.options || lastError || queue.some(o => o.status === 'pending')) sync(); }, 30000);
 
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 
