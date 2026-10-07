@@ -292,12 +292,40 @@
       buildSeg($('seg-spentBy'), 'spentBy', o.spentBy);
       buildSeg($('seg-split'), 'split', o.split);
       formReady = true;
+      const draft = store.get('draft', null);
       resetForm();
+      if (draft) restoreDraft(draft);
     }
     $('btn').disabled = false;
     if (/lists/.test($('status').textContent)) setStatus('');
   }
+  // ---- unfinished entry: saved as you type, so it survives the phone closing the app ----
+  function saveDraft() {
+    if (!formReady) return;
+    const d = Object.fromEntries(new FormData(form));
+    const empty = !editing && !d.subcategory && !d.purpose && !d.amount && d.date === autoDate;
+    if (empty) { clearDraft(); return; }
+    d.editingId = editing ? editing.id : null;
+    d.dateAuto = d.date === autoDate; // still the date the app filled in (moves on to a new day)
+    store.set('draft', d);
+  }
+  function clearDraft() { try { localStorage.removeItem('exp_draft'); } catch (e) { /* ignore */ } }
+  function restoreDraft(d) {
+    if (d.editingId) {
+      const target = view().find(e => e.id === d.editingId);
+      if (!target) return; // that expense no longer exists: nothing to continue
+      startEdit(target);
+    }
+    FIELDS.forEach(f => { if (f !== 'date' && d[f] != null) setField(f, d[f]); });
+    if (!d.dateAuto || d.editingId) setField('date', d.date);
+    saveDraft();
+    setStatus('Your unfinished entry was kept.', 'ok');
+  }
+  form.addEventListener('input', saveDraft);
+  form.addEventListener('change', saveDraft);
+
   function resetForm() {
+    clearDraft();
     editing = null;
     form.reset();
     form.date.value = autoDate = today();
@@ -323,6 +351,7 @@
     $('actions').classList.add('editing');
     setStatus('');
     window.scrollTo(0, 0);
+    saveDraft();
   }
   $('cancel').addEventListener('click', () => { resetForm(); setStatus(''); showTab('list'); });
   $('delete').addEventListener('click', () => {
